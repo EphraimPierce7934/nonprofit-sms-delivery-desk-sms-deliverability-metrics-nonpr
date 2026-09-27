@@ -1,0 +1,13 @@
+{
+  "name": "nonprofit-sms-delivery-desk",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/delivery_desk.ts",
+    "demo": "tsx scripts/check_delivery.ts",
+    "test": "tsx --test test/delivery_decision.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {"zod": "^3.24.0"},
+  "devDependencies": {"@types/node": "^22.0.0", "tsx": "^4.19.0", "typescript": "^5.6.0"}
+}
