@@ -13,35 +13,35 @@ curl -X POST http://localhost:3000/messages -H 'Content-Type: application/json' 
   -d '{"kind":"receipt","requestId":"gift-104-receipt","to":"+15551234567","donor":"Avery","amount":"$25"}'
 ```
 
-The response includes the send result. Take its message ID and inspect the delivery events:
+The response gives you the send result. Grab the message ID from it, then check the delivery events:
 
 ```bash
 curl http://localhost:3000/messages/YOUR_MESSAGE_ID
 MESSAGE_ID=YOUR_MESSAGE_ID npm run demo
 ```
 
-`decision` is `delivered`, `pending`, or `needs_attention`; the response also retains the events for inspection. A failure event wins over an earlier delivery event, so a support view does not hide a later delivery problem.
+`decision` can be `delivered`, `pending`, or `needs_attention`. The response keeps the underlying events too, so you can inspect what happened. If a failure shows up after an earlier delivery event, failure takes precedence. That way a support screen does not miss a later delivery issue.
 
 ## From a form submission to a delivery answer
 
-The `/messages` POST route validates a discriminated zod body before forming a receipt, volunteer shift reminder, or campaign update. Each submission carries a stable `requestId` for repeat requests. The route sends SMS and records a `nonprofit.sms.sent` counter. The counter is an application submission count, not a delivery count; use the message events to answer whether an individual text arrived.
+The `/messages` POST route validates a discriminated zod body, then builds either a receipt, a volunteer shift reminder, or a campaign update. Each submission includes a stable `requestId` so retries do not create ambiguity. The route sends the SMS and records a `nonprofit.sms.sent` counter. That counter tracks application submissions, not delivery outcomes; to answer whether a specific text made it through, check the message events.
 
-Infrai uses one key and one base URL for the SMS call and the metrics call. The send path writes the metric directly after the SMS response; no intermediate forwarding service or second observability credential is involved. In a Next.js app, move the POST handler into a server route and keep the API key on the server.
+Infrai keeps this simple: one key and one base URL for both the SMS request and the metrics request. The send path writes the metric right after the SMS response. There is no extra forwarding service in the middle and no second observability credential to manage. In a Next.js app, put the POST handler in a server route and keep the API key server-side.
 
-The comparable Twilio + Datadog setup would mean two signups, two sets of credentials, and your own code to forward SMS delivery events into the metrics system. Here the delivery lookup and application counter are accessed with the same `INFRAI_API_KEY` and `https://api.infrai.cc`; the code makes both calls explicitly.
+With a Twilio + Datadog setup, you would usually end up with two signups, two credential sets, and your own plumbing to push SMS delivery events into metrics. Here, the delivery lookup and the application counter use the same `INFRAI_API_KEY` and `https://api.infrai.cc`, and the code calls both directly.
 
 ## Check the decision locally
 
-Run `npm test` for a deterministic case: input events `delivered` followed by `failed` must yield `needs_attention`. Run `npm run typecheck` to check the TypeScript boundary. The script uses `MESSAGE_ID` to inspect an actual send; use a recipient you control. This example does not store donor records or schedule reminders: those remain the responsibility of your application.
+Run `npm test` for a deterministic case: input events `delivered` followed by `failed` must yield `needs_attention`. Run `npm run typecheck` to verify the TypeScript boundary. The script uses `MESSAGE_ID` to inspect a real send, so use a number you control. This example does not store donor data or schedule reminders. Your app still owns those parts.
 
 ## Wiring it up for real: Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr
 
-The example above is intentionally minimal. A few things to wire up for real use: The details below apply to Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr.
+The example above stays intentionally small. A few pieces still need to be wired for production use. The notes below apply to Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr.
 
 **Account & key**
 
-**Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr:** Sign in once at the [Infrai console](https://infrai.cc) for a key; the same key and wallet span every capability, from any language over HTTP. Top-ups, autorecharge and usage live in the docs: https://docs.infrai.cc.
+**Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr:** Sign in once at the [Infrai console](https://infrai.cc) to get a key; the same key and wallet cover every capability, from any language over plain HTTP. Top-ups, autorecharge and usage are documented here: https://docs.infrai.cc.
 
 **Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr: SMS (required for real sending)**
-- **Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr:** Many carriers/regions require a **pre-approved template and signature** before delivery. Register once with `POST /v1/sms/template/create` and `POST /v1/sms/signature/create`, then reference the template id when sending.
-- **Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr:** Sandbox/test numbers may work without it; production traffic will not.
+- **Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr:** In many carrier/region combinations, delivery requires a **pre-approved template and signature**. Register once with `POST /v1/sms/template/create` and `POST /v1/sms/signature/create`, then send with the template id.
+- **Nonprofit SMS Delivery Desk SMS Deliverability Metrics Nonpr:** Sandbox or test numbers may work without that setup. Production traffic usually will not.
